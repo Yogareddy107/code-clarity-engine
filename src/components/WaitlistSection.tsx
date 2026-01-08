@@ -1,22 +1,55 @@
 import { useState } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const WaitlistSection = () => {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     
     setIsSubmitting(true);
-    // Simulate submission
-    setTimeout(() => {
-      setIsSubmitting(false);
+    setError(null);
+
+    try {
+      // Insert email into waitlist table
+      const { error: dbError } = await supabase
+        .from('waitlist')
+        .insert({ email });
+
+      if (dbError) {
+        if (dbError.code === '23505') {
+          // Unique constraint violation - email already exists
+          setError("You're already on the waitlist!");
+        } else {
+          throw dbError;
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Send confirmation email via edge function
+      const { error: emailError } = await supabase.functions.invoke('send-waitlist-confirmation', {
+        body: { email }
+      });
+
+      if (emailError) {
+        console.error("Email error:", emailError);
+        // Still mark as submitted even if email fails - they're on the list
+      }
+
       setIsSubmitted(true);
       setEmail("");
-    }, 1000);
+    } catch (err: any) {
+      console.error("Waitlist error:", err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -40,7 +73,7 @@ const WaitlistSection = () => {
           <div className="feature-card max-w-md mx-auto">
             <p className="text-lg text-foreground mb-2">You're on the list!</p>
             <p className="text-muted-foreground text-sm">
-              We'll reach out when it's your turn.
+              Check your inbox for a confirmation email. We'll reach out when it's your turn.
             </p>
           </div>
         ) : (
@@ -72,6 +105,9 @@ const WaitlistSection = () => {
                 )}
               </button>
             </div>
+            {error && (
+              <p className="text-sm text-destructive mt-3">{error}</p>
+            )}
             <p className="text-xs text-muted-foreground/60 mt-4">
               No spam. No noise. Just product updates.
             </p>
