@@ -21,13 +21,7 @@ const HeroSection = () => {
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-8 animate-fade-in">
           Understand Any GitHub
           <br />
-          <span className="text-gradient">
-            Repository{" "}
-            <span className="inline-block relative">
-              <span className="strikethrough-text">in 1 Hour</span>
-              <span className="reveal-text">in 10 Minutes.</span>
-            </span>
-          </span>
+          <span className="text-gradient">Repository in 10 Minutes.</span>
         </h1>
 
         {/* Sub-headline */}
