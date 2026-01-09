@@ -12,6 +12,40 @@ interface WaitlistRequest {
   email: string;
 }
 
+// Simple in-memory rate limiting (resets on cold start)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 5; // Max requests per window
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return true;
+  }
+
+  entry.count++;
+  return false;
+}
+
+// Email validation
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidEmail(email: unknown): email is string {
+  return (
+    typeof email === "string" &&
+    email.length > 0 &&
+    email.length <= 255 &&
+    EMAIL_REGEX.test(email)
+  );
+}
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -19,9 +53,37 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email }: WaitlistRequest = await req.json();
+    // Rate limiting by IP
+    const clientIP = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     
-    console.log(`Sending waitlist confirmation to: ${email}`);
+    if (isRateLimited(clientIP)) {
+      console.warn(`Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ error: "Too many requests. Please try again later." }),
+        {
+          status: 429,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    const body = await req.json();
+    const { email } = body as WaitlistRequest;
+    
+    if (!isValidEmail(email)) {
+      console.warn("Invalid email format received");
+      return new Response(
+        JSON.stringify({ error: "Invalid email format" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Sanitize email for logging (don't log full email)
+    const sanitizedEmail = email.replace(/(.{2}).*(@.*)/, "$1***$2");
+    console.log(`Sending waitlist confirmation to: ${sanitizedEmail}`);
 
     // Send email using Resend REST API
     const res = await fetch("https://api.resend.com/emails", {
