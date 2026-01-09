@@ -8,15 +8,16 @@ const HeroSection = () => {
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
+    const isLastStep = timeIndex === timeSteps.length - 1;
+    const delay = isLastStep ? 3000 : timeIndex === 0 ? 800 : 400;
+
     const timer = setTimeout(() => {
-      if (timeIndex < timeSteps.length - 1) {
-        setIsAnimating(true);
-        setTimeout(() => {
-          setTimeIndex((prev) => prev + 1);
-          setIsAnimating(false);
-        }, 150);
-      }
-    }, timeIndex === 0 ? 800 : 400);
+      setIsAnimating(true);
+      setTimeout(() => {
+        setTimeIndex((prev) => (prev + 1) % timeSteps.length);
+        setIsAnimating(false);
+      }, 150);
+    }, delay);
 
     return () => clearTimeout(timer);
   }, [timeIndex]);
