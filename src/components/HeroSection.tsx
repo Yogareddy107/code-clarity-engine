@@ -41,17 +41,15 @@ const HeroSection = () => {
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-8 animate-fade-in">
           Understand Any GitHub
           <br />
-          <span className="text-gradient">
-            Repository in{" "}
-            <span 
-              className={`inline-block transition-all duration-150 ${
-                isAnimating ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
-              }`}
-            >
-              {timeSteps[timeIndex]}
-            </span>
-            {timeIndex === timeSteps.length - 1 ? "." : "..."}
+          <span className="text-gradient">Repository in </span>
+          <span 
+            className={`text-gradient inline-block transition-all duration-150 ${
+              isAnimating ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
+            }`}
+          >
+            {timeSteps[timeIndex]}
           </span>
+          <span className="text-gradient">{timeIndex === timeSteps.length - 1 ? "." : "..."}</span>
         </h1>
 
         {/* Sub-headline */}
