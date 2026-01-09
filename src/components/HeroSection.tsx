@@ -1,6 +1,26 @@
 import { ArrowRight } from "lucide-react";
+import { useState, useEffect } from "react";
+
+const timeSteps = ["1 hour", "45 min", "30 min", "15 min", "10 minutes"];
 
 const HeroSection = () => {
+  const [timeIndex, setTimeIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (timeIndex < timeSteps.length - 1) {
+        setIsAnimating(true);
+        setTimeout(() => {
+          setTimeIndex((prev) => prev + 1);
+          setIsAnimating(false);
+        }, 150);
+      }
+    }, timeIndex === 0 ? 800 : 400);
+
+    return () => clearTimeout(timer);
+  }, [timeIndex]);
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background glow effect */}
@@ -21,7 +41,17 @@ const HeroSection = () => {
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-8 animate-fade-in">
           Understand Any GitHub
           <br />
-          <span className="text-gradient">Repository in 10 Minutes.</span>
+          <span className="text-gradient">
+            Repository in{" "}
+            <span 
+              className={`inline-block transition-all duration-150 ${
+                isAnimating ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
+              }`}
+            >
+              {timeSteps[timeIndex]}
+            </span>
+            {timeIndex === timeSteps.length - 1 ? "." : "..."}
+          </span>
         </h1>
 
         {/* Sub-headline */}
